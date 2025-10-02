@@ -62,14 +62,14 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function saveState(state: any): void {
+function saveState(state: { rows: any[]; agenda: any[]; brief: any }): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
 }
 
-function loadState(): any | null {
+function loadState(): { rows: any[]; agenda: any[]; brief: any } | null {
   try {
     if (typeof window === "undefined" || !window.localStorage) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
