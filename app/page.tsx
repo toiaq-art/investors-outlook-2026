@@ -90,12 +90,16 @@ function download(filename: string, text: string, mime: string = "application/js
   document.body.removeChild(element);
 }
 
-function exportCSV(rows: any[]): string {
+function exportCSV(rows: Row[]): string {
   const headers = Object.keys(EMPTY_ROW).filter((k) => k !== "id");
-  const escapeCell = (v) => `"${String(v ?? "").replace(/\"/g, '""')}"`;
+  const escapeCell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
   const lines = [headers.join(",")];
   for (const r of rows) {
-    lines.push(headers.map((h) => escapeCell(r[h])).join(","));
+    lines.push(
+      headers
+        .map((h) => escapeCell((r as Record<string, unknown>)[h]))
+        .join(",")
+    );
   }
   return lines.join("\n");
 }
