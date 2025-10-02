@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Download, Upload, Plus, Trash2, Pencil, CheckCircle2, XCircle } from "lucide-react";
 
+// ---------------------- Types ----------------------
 type CIOAvailability = "Y" | "N" | "TBD";
 type Priority = "High" | "Med" | "Low";
 type SponsorYN = "Y" | "N";
@@ -18,20 +19,46 @@ type Status = "Da contattare" | "Contattato" | "In valutazione" | "Confermato" |
 type Roundtable = "Fixed Income" | "Equity" | "Alternativi" | "";
 
 type Row = {
-  id: string; sgr: string; comms: string; email: string; phone: string;
-  cioName: string; cioTitle: string; cioAvailability: CIOAvailability;
-  priority: Priority; primaryTheme: string; proposedAngle: string; backupAngle: string;
-  roundtable: Roundtable; secondName: string; secondRole: string; sponsor: SponsorYN;
-  conflict: string; proposedTitle: string; keyTakeaways: string;
-  confDeadline: string; abstractDeadline: string; bioDeadline: string;
-  compliance: string; logistics: string; status: Status; nextAction: string; owner: string;
+  id: string;
+  sgr: string;
+  comms: string;
+  email: string;
+  phone: string;
+  cioName: string;
+  cioTitle: string;
+  cioAvailability: CIOAvailability;
+  priority: Priority;
+  primaryTheme: string;
+  proposedAngle: string;
+  backupAngle: string;
+  roundtable: Roundtable;
+  secondName: string;
+  secondRole: string;
+  sponsor: SponsorYN;
+  conflict: string;
+  proposedTitle: string;
+  keyTakeaways: string;
+  confDeadline: string;
+  abstractDeadline: string;
+  bioDeadline: string;
+  compliance: string;
+  logistics: string;
+  status: Status;
+  nextAction: string;
+  owner: string;
 };
 
 type AgendaItem = { time: string; session: string; speaker: string; theme: string; notes: string };
+
 type Brief = { [key: string]: string | boolean };
+
+type Filter = { query: string; theme: string; status: string; priority: string };
+
+type TestResult = { name: string; pass: boolean };
+
 type State = { rows: Row[]; agenda: AgendaItem[]; brief: Brief };
 
-
+// ---------------------- Constants ----------------------
 const THEME_CATEGORIES = [
   "Macro, Inflazione, Geopolitica",
   "Azionario (Globale/EU/USA/EM/Cap)",
@@ -43,13 +70,13 @@ const THEME_CATEGORIES = [
   "Cross-Asset Playbook",
 ];
 
-const ROUNDTABLES = ["Fixed Income", "Equity", "Alternativi"];
-const STATUS = ["Da contattare", "Contattato", "In valutazione", "Confermato", "Declinato"];
-const PRIORITY = ["High", "Med", "Low"];
+const ROUNDTABLES: Roundtable[] = ["Fixed Income", "Equity", "Alternativi"];
+const STATUS: Status[] = ["Da contattare", "Contattato", "In valutazione", "Confermato", "Declinato"];
+const PRIORITY: Priority[] = ["High", "Med", "Low"];
 const STORAGE_KEY = "investors_outlook_2026_dashboard";
 const ALL = "__ALL__";
 
-const EMPTY_ROW = {
+const EMPTY_ROW: Row = {
   id: "",
   sgr: "",
   comms: "",
@@ -79,7 +106,8 @@ const EMPTY_ROW = {
   owner: "",
 };
 
-function uid() {
+// ---------------------- Utilities ----------------------
+function uid(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
@@ -87,7 +115,7 @@ function saveState(state: State): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) {}
+  } catch {}
 }
 
 function loadState(): State | null {
@@ -95,8 +123,13 @@ function loadState(): State | null {
     if (typeof window === "undefined" || !window.localStorage) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    return JSON.parse(raw);
-  } catch (e) {
+    const parsed = JSON.parse(raw) as Partial<State>;
+    return {
+      rows: Array.isArray(parsed.rows) ? (parsed.rows as Row[]) : [],
+      agenda: Array.isArray(parsed.agenda) ? (parsed.agenda as AgendaItem[]) : [],
+      brief: (parsed.brief as Brief) || {},
+    };
+  } catch {
     return null;
   }
 }
@@ -113,28 +146,22 @@ function download(filename: string, text: string, mime: string = "application/js
 
 function exportCSV(rows: Row[]): string {
   const headers = Object.keys(EMPTY_ROW).filter((k) => k !== "id");
-  const escapeCell = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const escapeCell = (v: unknown) => `"${String(v ?? "").replace(/\"/g, '""')}"`;
   const lines = [headers.join(",")];
   for (const r of rows) {
-    lines.push(
-      headers.map((h) => escapeCell((r as Record<string, unknown>)[h])).join(",")
-    );
+    lines.push(headers.map((h) => escapeCell((r as Record<string, unknown>)[h])).join(","));
   }
   return lines.join("\n");
 }
 
-// 5) parseCSV
-// PRIMA: function parseCSV(text) {
 function parseCSV(text: string): Row[] {
-
-function parseCSV(text: string): any[] {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (!lines.length) return [];
   const headers = lines[0].split(",").map((h) => h.replace(/(^\"|\"$)/g, ""));
-  const out = [];
+  const out: Row[] = [];
   for (let li = 1; li < lines.length; li++) {
     const line = lines[li];
-    const cols = [];
+    const cols: string[] = [];
     let cur = "";
     let inQ = false;
     for (let i = 0; i < line.length; i++) {
@@ -154,16 +181,17 @@ function parseCSV(text: string): any[] {
       }
     }
     cols.push(cur);
-    const obj = { ...EMPTY_ROW, id: uid() };
+    const obj: Row = { ...EMPTY_ROW, id: uid() };
     headers.forEach((h, idx) => {
-      obj[h] = (cols[idx] || "").replace(/(^\"|\"$)/g, "");
+      (obj as unknown as Record<string, string>)[h] = (cols[idx] || "").replace(/(^\"|\"$)/g, "");
     });
     out.push(obj);
   }
   return out;
 }
 
-function Badge({ children, variant = "default" }) {
+// ---------------------- Components ----------------------
+function Badge({ children, variant = "default" }: { children: React.ReactNode; variant?: "default" | "green" | "yellow" | "red" | "blue" }) {
   const cls = {
     default: "bg-gray-100 text-gray-800",
     green: "bg-green-100 text-green-800",
@@ -174,8 +202,8 @@ function Badge({ children, variant = "default" }) {
   return <span className={`px-2 py-1 rounded-full text-xs ${cls}`}>{children}</span>;
 }
 
-function RowEditor({ initial, onSave, onCancel }) {
-  const [row, setRow] = useState(initial);
+function RowEditor({ initial, onSave, onCancel }: { initial: Row; onSave: (row: Row) => void; onCancel: () => void }) {
+  const [row, setRow] = useState<Row>(initial);
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div>
@@ -204,7 +232,7 @@ function RowEditor({ initial, onSave, onCancel }) {
       </div>
       <div>
         <Label>Disponibilità CIO</Label>
-        <Select value={row.cioAvailability || undefined} onValueChange={(v) => setRow({ ...row, cioAvailability: v })}>
+        <Select value={row.cioAvailability} onValueChange={(v) => setRow({ ...row, cioAvailability: v as CIOAvailability })}>
           <SelectTrigger>
             <SelectValue placeholder="Seleziona" />
           </SelectTrigger>
@@ -217,7 +245,7 @@ function RowEditor({ initial, onSave, onCancel }) {
       </div>
       <div>
         <Label>Priorità</Label>
-        <Select value={row.priority || undefined} onValueChange={(v) => setRow({ ...row, priority: v })}>
+        <Select value={row.priority} onValueChange={(v) => setRow({ ...row, priority: v as Priority })}>
           <SelectTrigger>
             <SelectValue placeholder="Seleziona" />
           </SelectTrigger>
@@ -230,7 +258,7 @@ function RowEditor({ initial, onSave, onCancel }) {
       </div>
       <div>
         <Label>Categoria Tema</Label>
-        <Select value={row.primaryTheme || undefined} onValueChange={(v) => setRow({ ...row, primaryTheme: v })}>
+        <Select value={row.primaryTheme} onValueChange={(v) => setRow({ ...row, primaryTheme: v })}>
           <SelectTrigger>
             <SelectValue placeholder="Seleziona" />
           </SelectTrigger>
@@ -251,7 +279,7 @@ function RowEditor({ initial, onSave, onCancel }) {
       </div>
       <div>
         <Label>Roundtable</Label>
-        <Select value={row.roundtable || undefined} onValueChange={(v) => setRow({ ...row, roundtable: v })}>
+        <Select value={row.roundtable} onValueChange={(v) => setRow({ ...row, roundtable: v as Roundtable })}>
           <SelectTrigger>
             <SelectValue placeholder="Seleziona" />
           </SelectTrigger>
@@ -272,7 +300,7 @@ function RowEditor({ initial, onSave, onCancel }) {
       </div>
       <div>
         <Label>Sponsor? (Y/N)</Label>
-        <Select value={row.sponsor || undefined} onValueChange={(v) => setRow({ ...row, sponsor: v })}>
+        <Select value={row.sponsor} onValueChange={(v) => setRow({ ...row, sponsor: v as SponsorYN })}>
           <SelectTrigger>
             <SelectValue placeholder="Seleziona" />
           </SelectTrigger>
@@ -317,7 +345,7 @@ function RowEditor({ initial, onSave, onCancel }) {
       </div>
       <div>
         <Label>Status</Label>
-        <Select value={row.status || undefined} onValueChange={(v) => setRow({ ...row, status: v })}>
+        <Select value={row.status} onValueChange={(v) => setRow({ ...row, status: v as Status })}>
           <SelectTrigger>
             <SelectValue placeholder="Seleziona" />
           </SelectTrigger>
@@ -344,7 +372,7 @@ function RowEditor({ initial, onSave, onCancel }) {
   );
 }
 
-function PitchTable({ rows, onEdit, onDelete, filter, setFilter }) {
+function PitchTable({ rows, onEdit, onDelete, filter, setFilter }: { rows: Row[]; onEdit: (r: Row) => void; onDelete: (id: string) => void; filter: Filter; setFilter: (f: Filter) => void }) {
   const filtered = useMemo(() => {
     return rows.filter((r) =>
       (!filter.query || [r.sgr, r.cioName, r.proposedTitle, r.proposedAngle].join(" ").toLowerCase().includes(filter.query.toLowerCase())) &&
@@ -497,14 +525,14 @@ function TopicMenu() {
   );
 }
 
-function AgendaGrid({ agenda, setAgenda }) {
-  const update = (idx, key, val) => {
+function AgendaGrid({ agenda, setAgenda }: { agenda: AgendaItem[]; setAgenda: (a: AgendaItem[]) => void }) {
+  const update = (idx: number, key: keyof AgendaItem, val: string) => {
     const next = [...agenda];
-    next[idx] = { ...next[idx], [key]: val };
+    next[idx] = { ...next[idx], [key]: val } as AgendaItem;
     setAgenda(next);
   };
   const addRow = () => setAgenda([...agenda, { time: "", session: "", speaker: "", theme: "", notes: "" }]);
-  const delRow = (idx) => setAgenda(agenda.filter((_, i) => i !== idx));
+  const delRow = (idx: number) => setAgenda(agenda.filter((_, i) => i !== idx));
 
   return (
     <div className="space-y-3">
@@ -558,8 +586,8 @@ function AgendaGrid({ agenda, setAgenda }) {
   );
 }
 
-function SpeakerBrief({ brief, setBrief }) {
-  const update = (k, v) => setBrief({ ...brief, [k]: v });
+function SpeakerBrief({ brief, setBrief }: { brief: Brief; setBrief: (b: Brief) => void }) {
+  const update = (k: string, v: string | boolean) => setBrief({ ...brief, [k]: v });
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
       {[
@@ -570,24 +598,24 @@ function SpeakerBrief({ brief, setBrief }) {
       ].map(([k, lbl]) => (
         <div key={k}>
           <Label>{lbl}</Label>
-          <Input value={brief[k] || ""} onChange={(e) => update(k, e.target.value)} />
+          <Input value={(brief[k as string] as string) || ""} onChange={(e) => update(k as string, e.target.value)} />
         </div>
       ))}
       <div className="md:col-span-2">
         <Label>1-line thesis</Label>
-        <Input value={brief.thesis || ""} onChange={(e) => update("thesis", e.target.value)} />
+        <Input value={(brief.thesis as string) || ""} onChange={(e) => update("thesis", e.target.value)} />
       </div>
       <div className="md:col-span-2">
         <Label>3 key takeaways</Label>
-        <Textarea value={brief.takeaways || ""} onChange={(e) => update("takeaways", e.target.value)} />
+        <Textarea value={(brief.takeaways as string) || ""} onChange={(e) => update("takeaways", e.target.value)} />
       </div>
       <div className="md:col-span-2">
         <Label>Evidenze a supporto (dati/grafici/case)</Label>
-        <Textarea value={brief.evidence || ""} onChange={(e) => update("evidence", e.target.value)} />
+        <Textarea value={(brief.evidence as string) || ""} onChange={(e) => update("evidence", e.target.value)} />
       </div>
       <div>
         <Label>Necessità AV</Label>
-        <Input value={brief.av || ""} onChange={(e) => update("av", e.target.value)} />
+        <Input value={(brief.av as string) || ""} onChange={(e) => update("av", e.target.value)} />
       </div>
       <div>
         <Label>Conferma no product pitch</Label>
@@ -600,8 +628,9 @@ function SpeakerBrief({ brief, setBrief }) {
   );
 }
 
-function seedDemo(setRows) {
-  const demo = [
+// ---------------------- Demo/Test helpers ----------------------
+function seedDemo(setRows: React.Dispatch<React.SetStateAction<Row[]>>): void {
+  const demo: Row[] = [
     {
       ...EMPTY_ROW,
       id: uid(),
@@ -638,11 +667,11 @@ function seedDemo(setRows) {
   setRows((prev) => [...demo, ...prev]);
 }
 
-function runTests() {
-  const results = [];
+function runTests(): TestResult[] {
+  const results: TestResult[] = [];
   const ids = new Set(Array.from({ length: 100 }, () => uid()));
   results.push({ name: "uid uniqueness", pass: ids.size === 100 });
-  const sample = [
+  const sample: Row[] = [
     { ...EMPTY_ROW, id: "a", sgr: "A", comms: "X", email: "a@x", proposedTitle: "t1" },
     { ...EMPTY_ROW, id: "b", sgr: "B", comms: "Y", email: "b@y", proposedTitle: "t2, with comma" },
   ];
@@ -650,23 +679,24 @@ function runTests() {
   const round = parseCSV(csv);
   results.push({ name: "csv roundtrip count", pass: round.length === 2 });
   results.push({ name: "csv field", pass: round[1].proposedTitle.indexOf("comma") > -1 });
-  const rows = [
+  const rows: Row[] = [
     { ...EMPTY_ROW, id: "1", sgr: "SGR Uno", cioName: "", proposedTitle: "Alpha", primaryTheme: THEME_CATEGORIES[0] },
     { ...EMPTY_ROW, id: "2", sgr: "SGR Due", cioName: "CIO", proposedTitle: "Beta", primaryTheme: THEME_CATEGORIES[1] },
   ];
-  const f1 = { query: "alpha", theme: "", status: "", priority: "" };
+  const f1: Filter = { query: "alpha", theme: "", status: "", priority: "" };
   const filtered1 = rows.filter((r) => (!f1.query || [r.sgr, r.cioName, r.proposedTitle, r.proposedAngle].join(" ").toLowerCase().includes(f1.query.toLowerCase())));
   results.push({ name: "filter query", pass: filtered1.length === 1 });
-  const f2 = { query: "", theme: "", status: "", priority: "" };
+  const f2: Filter = { query: "", theme: "", status: "", priority: "" };
   const filtered2 = rows.filter((r) => (!f2.theme || r.primaryTheme === f2.theme));
   results.push({ name: "filter all sentinel", pass: filtered2.length === 2 });
   return results;
 }
 
+// ---------------------- Main App ----------------------
 export default function App() {
   const loaded = loadState();
-  const [rows, setRows] = useState((loaded && loaded.rows) || []);
-  const [agenda, setAgenda] = useState((loaded && loaded.agenda) || [
+  const [rows, setRows] = useState<Row[]>(loaded ? loaded.rows : []);
+  const [agenda, setAgenda] = useState<AgendaItem[]>(loaded ? loaded.agenda : [
     { time: "09:30", session: "Welcome Coffee", speaker: "", theme: "", notes: "" },
     { time: "09:55", session: "Introduzione FundsPeople", speaker: "", theme: "", notes: "" },
     { time: "10:00", session: "Outlook Tematico 1 (CIO)", speaker: "", theme: "", notes: "" },
@@ -680,17 +710,17 @@ export default function App() {
     { time: "12:30", session: "Roundtable Alternativi", speaker: "", theme: "", notes: "" },
     { time: "13:00", session: "Buffet Lunch", speaker: "", theme: "", notes: "" },
   ]);
-  const [brief, setBrief] = useState((loaded && loaded.brief) || {});
-  const [filter, setFilter] = useState({ query: "", theme: "", status: "", priority: "" });
-  const [editing, setEditing] = useState(null);
-  const [tests, setTests] = useState([]);
+  const [brief, setBrief] = useState<Brief>(loaded ? loaded.brief : {});
+  const [filter, setFilter] = useState<Filter>({ query: "", theme: "", status: "", priority: "" });
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [tests, setTests] = useState<TestResult[]>([]);
 
   useEffect(() => {
     saveState({ rows, agenda, brief });
   }, [rows, agenda, brief]);
 
   const addRow = () => setEditing({ ...EMPTY_ROW, id: uid() });
-  const onSaveRow = (row) => {
+  const onSaveRow = (row: Row) => {
     setRows((prev) => {
       const idx = prev.findIndex((r) => r.id === row.id);
       if (idx >= 0) {
@@ -702,32 +732,32 @@ export default function App() {
     });
     setEditing(null);
   };
-  const onDelete = (id) => setRows((prev) => prev.filter((r) => r.id !== id));
+  const onDelete = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id));
 
   const exportJSON = () => download("investors_outlook_2026.json", JSON.stringify({ rows, agenda, brief }, null, 2));
   const exportCsv = () => download("pitch_tracker.csv", exportCSV(rows), "text/csv");
 
-  const importJSON = (file) => {
+  const importJSON = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = JSON.parse(String(reader.result));
-        setRows(data.rows || []);
-        setAgenda(data.agenda || []);
-        setBrief(data.brief || {});
-      } catch (e) {
+        const data = JSON.parse(String(reader.result)) as Partial<State>;
+        setRows((data.rows as Row[]) || []);
+        setAgenda((data.agenda as AgendaItem[]) || []);
+        setBrief((data.brief as Brief) || {});
+      } catch {
         alert("File JSON non valido");
       }
     };
     reader.readAsText(file);
   };
-  const importCSV = (file) => {
+  const importCSV = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       try {
         const parsed = parseCSV(String(reader.result));
         setRows((prev) => [...parsed, ...prev]);
-      } catch (e) {
+      } catch {
         alert("CSV non valido");
       }
     };
@@ -799,7 +829,7 @@ export default function App() {
         <TabsContent value="pitch">
           <Card className="rounded-2xl">
             <CardContent className="p-4 space-y-4">
-              <PitchTable rows={rows} onEdit={setEditing} onDelete={onDelete} filter={filter} setFilter={setFilter} />
+              <PitchTable rows={rows} onEdit={setEditing as unknown as (r: Row) => void} onDelete={onDelete} filter={filter} setFilter={setFilter} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -866,4 +896,3 @@ export default function App() {
     </div>
   );
 }
-
