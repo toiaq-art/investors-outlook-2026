@@ -261,7 +261,7 @@ function RowEditor({ initial, onSave, onCancel }) {
         <Input value={row.conflict} onChange={(e) => setRow({ ...row, conflict: e.target.value })} />
       </div>
       <div className="md:col-span-2">
-        <Label>Titolo 15'</Label>
+        <Label>Titolo 15&apos;</Label>
         <Input value={row.proposedTitle} onChange={(e) => setRow({ ...row, proposedTitle: e.target.value })} />
       </div>
       <div className="md:col-span-2">
@@ -379,7 +379,7 @@ function PitchTable({ rows, onEdit, onDelete, filter, setFilter }) {
               <th className="p-3">SGR</th>
               <th className="p-3">CIO</th>
               <th className="p-3">Tema</th>
-              <th className="p-3">Titolo 15'</th>
+              <th className="p-3">Titolo 15&apos;</th>
               <th className="p-3">Roundtable</th>
               <th className="p-3">Priorità</th>
               <th className="p-3">Status</th>
@@ -834,9 +834,10 @@ export default function App() {
       </Dialog>
 
       <div className="text-xs text-gray-500">
-        Suggerimenti: usa i filtri per evitare sovrapposizioni; evidenzia "Conflict" nel campo conflitti; priorità CIO sempre &gt; PM/Head.
+        Suggerimenti: usa i filtri per evitare sovrapposizioni; evidenzia &quot;Conflict&quot; nel campo conflitti; priorità CIO sempre &gt; PM/Head.
       </div>
     </div>
   );
 }
+
 
