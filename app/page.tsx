@@ -11,6 +11,27 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Download, Upload, Plus, Trash2, Pencil, CheckCircle2, XCircle } from "lucide-react";
 
+type CIOAvailability = "Y" | "N" | "TBD";
+type Priority = "High" | "Med" | "Low";
+type SponsorYN = "Y" | "N";
+type Status = "Da contattare" | "Contattato" | "In valutazione" | "Confermato" | "Declinato";
+type Roundtable = "Fixed Income" | "Equity" | "Alternativi" | "";
+
+type Row = {
+  id: string; sgr: string; comms: string; email: string; phone: string;
+  cioName: string; cioTitle: string; cioAvailability: CIOAvailability;
+  priority: Priority; primaryTheme: string; proposedAngle: string; backupAngle: string;
+  roundtable: Roundtable; secondName: string; secondRole: string; sponsor: SponsorYN;
+  conflict: string; proposedTitle: string; keyTakeaways: string;
+  confDeadline: string; abstractDeadline: string; bioDeadline: string;
+  compliance: string; logistics: string; status: Status; nextAction: string; owner: string;
+};
+
+type AgendaItem = { time: string; session: string; speaker: string; theme: string; notes: string };
+type Brief = { [key: string]: string | boolean };
+type State = { rows: Row[]; agenda: AgendaItem[]; brief: Brief };
+
+
 const THEME_CATEGORIES = [
   "Macro, Inflazione, Geopolitica",
   "Azionario (Globale/EU/USA/EM/Cap)",
@@ -62,14 +83,14 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function saveState(state: { rows: any[]; agenda: any[]; brief: any }): void {
+function saveState(state: State): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
 }
 
-function loadState(): { rows: any[]; agenda: any[]; brief: any } | null {
+function loadState(): State | null {
   try {
     if (typeof window === "undefined" || !window.localStorage) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -96,13 +117,15 @@ function exportCSV(rows: Row[]): string {
   const lines = [headers.join(",")];
   for (const r of rows) {
     lines.push(
-      headers
-        .map((h) => escapeCell((r as Record<string, unknown>)[h]))
-        .join(",")
+      headers.map((h) => escapeCell((r as Record<string, unknown>)[h])).join(",")
     );
   }
   return lines.join("\n");
 }
+
+// 5) parseCSV
+// PRIMA: function parseCSV(text) {
+function parseCSV(text: string): Row[] {
 
 function parseCSV(text: string): any[] {
   const lines = text.split(/\r?\n/).filter(Boolean);
@@ -843,5 +866,4 @@ export default function App() {
     </div>
   );
 }
-
 
