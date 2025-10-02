@@ -364,7 +364,7 @@ function RowEditor({ initial, onSave, onCancel }: { initial: Row; onSave: (row: 
         <Label>Owner</Label>
         <Input value={row.owner} onChange={(e) => setRow({ ...row, owner: e.target.value })} />
       </div>
-      <div className="col-span-full sticky bottom-0 z-10 -mx-4 px-4 py-3 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t flex gap-2 justify-end">
+      <div className="col-span-full sticky bottom-0 z-10 -mx-4 px-4 py-3 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t flex gap-2 justify-end\">
         <Button onClick={() => onSave(row)}>Salva</Button>
         <Button variant="secondary" onClick={onCancel}>Annulla</Button>
       </div>
@@ -890,7 +890,7 @@ export default function App() {
                 </Button>
               </DialogClose>
             </div>
-            <div className=\"overflow-y-auto p-4 pb-24\">
+            <div className="overflow-y-auto p-4 pb-24\">
               {editing && (
                 <RowEditor initial={editing} onSave={onSaveRow} onCancel={() => setEditing(null)} />
               )}
