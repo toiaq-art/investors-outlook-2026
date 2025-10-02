@@ -62,14 +62,14 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function saveState(state) {
+function saveState(state: any): void {
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {}
 }
 
-function loadState() {
+function loadState(): any | null {
   try {
     if (typeof window === "undefined" || !window.localStorage) return null;
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -80,7 +80,7 @@ function loadState() {
   }
 }
 
-function download(filename, text, mime = "application/json") {
+function download(filename: string, text: string, mime: string = "application/json"): void {
   const element = document.createElement("a");
   const file = new Blob([text], { type: mime });
   element.href = URL.createObjectURL(file);
@@ -90,7 +90,7 @@ function download(filename, text, mime = "application/json") {
   document.body.removeChild(element);
 }
 
-function exportCSV(rows) {
+function exportCSV(rows: any[]): string {
   const headers = Object.keys(EMPTY_ROW).filter((k) => k !== "id");
   const escapeCell = (v) => `"${String(v ?? "").replace(/\"/g, '""')}"`;
   const lines = [headers.join(",")];
@@ -100,7 +100,7 @@ function exportCSV(rows) {
   return lines.join("\n");
 }
 
-function parseCSV(text) {
+function parseCSV(text: string): any[] {
   const lines = text.split(/\r?\n/).filter(Boolean);
   if (!lines.length) return [];
   const headers = lines[0].split(",").map((h) => h.replace(/(^\"|\"$)/g, ""));
