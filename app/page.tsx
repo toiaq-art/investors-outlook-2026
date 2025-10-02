@@ -8,8 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Download, Upload, Plus, Trash2, Pencil, CheckCircle2, XCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { Download, Upload, Plus, Trash2, Pencil, CheckCircle2, XCircle, X } from "lucide-react";
 
 // ---------------------- Types ----------------------
 type CIOAvailability = "Y" | "N" | "TBD";
@@ -364,7 +364,7 @@ function RowEditor({ initial, onSave, onCancel }: { initial: Row; onSave: (row: 
         <Label>Owner</Label>
         <Input value={row.owner} onChange={(e) => setRow({ ...row, owner: e.target.value })} />
       </div>
-      <div className="md:col-span-2 flex gap-2 justify-end mt-2">
+      <div className=\"col-span-full sticky bottom-0 z-10 -mx-4 px-4 py-3 bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-t flex gap-2 justify-end\">
         <Button onClick={() => onSave(row)}>Salva</Button>
         <Button variant="secondary" onClick={onCancel}>Annulla</Button>
       </div>
@@ -880,13 +880,22 @@ export default function App() {
       </Tabs>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="max-w-3xl">
-          <DialogHeader>
-            <DialogTitle>{editing && editing.sgr ? `Modifica: ${editing.sgr}` : "Nuova SGR"}</DialogTitle>
-          </DialogHeader>
-          {editing && (
-            <RowEditor initial={editing} onSave={onSaveRow} onCancel={() => setEditing(null)} />
-          )}
+        <DialogContent className="max-w-[95vw] md:max-w-3xl p-0 overflow-hidden">
+          <div className="max-h-[85vh] flex flex-col">
+            <div className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b px-4 py-3 flex items-center justify-between">
+              <DialogTitle className="text-base">{editing && editing.sgr ? `Modifica: ${editing.sgr}` : "Nuova SGR"}</DialogTitle>
+              <DialogClose asChild>
+                <Button variant="ghost" size="icon" aria-label="Chiudi">
+                  <X className="h-5 w-5" />
+                </Button>
+              </DialogClose>
+            </div>
+            <div className=\"overflow-y-auto p-4 pb-24\">
+              {editing && (
+                <RowEditor initial={editing} onSave={onSaveRow} onCancel={() => setEditing(null)} />
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
